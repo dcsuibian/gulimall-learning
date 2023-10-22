@@ -6,11 +6,12 @@
 
 以下是我使用的软件/代码版本。
 
-| 软件         | 版本     | 来源     |
-| ------------ | -------- | -------- |
-| 虚拟机CentOS | 7        |          |
-| Node.js      | v10.16.3 | fnm      |
-| Python       | 3.11.4   | Anaconda |
+| 软件         | 版本     | 来源                                                         |
+| ------------ | -------- | ------------------------------------------------------------ |
+| 虚拟机CentOS | 7        |                                                              |
+| Node.js      | v10.16.3 | fnm                                                          |
+| Python       | 3.11.4   | Anaconda                                                     |
+| Nacos        | 1.1.3    | [GitHub](https://github.com/alibaba/nacos/releases/tag/1.1.3) |
 
 ![image-20231012012728796](./assets/image-20231012012728796.png)
 
@@ -31,5 +32,4 @@ P16中renren-fast-vue的对应commit hash为：`1e0caca`
 P17中的renren-generator的对应commit hash为：`4a9e053`
 
 不过这个版本在我这里跑不通，所以我用的commit hash为：`dd4f430`
-
 
