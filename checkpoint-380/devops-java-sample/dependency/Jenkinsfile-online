@@ -1,0 +1,57 @@
+pipeline {
+  agent {
+    node {
+      label 'maven'
+    }
+  }
+
+    parameters {
+        string(name:'TAG_NAME',defaultValue: '',description:'')
+    }
+
+    environment {
+        ALIYUN_DOCKER_CREDENTIAL_ID = 'aliyun-dockerhub-id'
+        REGISTRY = 'registry.cn-hangzhou.aliyuncs.com'
+        ALIYUN_DOCKERHUB_NAMESPACE = 'docker_username'
+        APP_NAME = 'devops-java-sample'
+    }
+
+    stages {
+        stage ('checkout scm') {
+            steps {
+                checkout(scm)
+            }
+        }
+
+        stage ('unit test') {
+            steps {
+                container ('maven') {
+                    sh 'mvn clean test'
+                }
+            }
+        }
+
+        stage ('build & push') {
+            steps {
+                container ('maven') {
+                    sh 'mvn -Dmaven.test.skip=true clean package'
+                    archiveArtifacts 'target/*.jar'
+                    sh 'docker build -f Dockerfile-online -t $REGISTRY/$ALIYUN_DOCKERHUB_NAMESPACE/$APP_NAME:SNAPSHOT-$BUILD_NUMBER .'
+                    withCredentials([usernamePassword(passwordVariable : 'ALIYUN_DOCKER_PASSWORD' ,usernameVariable : 'ALIYUN_DOCKER_USERNAME' ,credentialsId : "$ALIYUN_DOCKER_CREDENTIAL_ID" ,)]) {
+                        sh 'echo "$ALIYUN_DOCKER_PASSWORD" | docker login $REGISTRY -u "$ALIYUN_DOCKER_USERNAME" --password-stdin'
+                        sh 'docker push  $REGISTRY/$ALIYUN_DOCKERHUB_NAMESPACE/$APP_NAME:SNAPSHOT-$BUILD_NUMBER'
+                    }
+                }
+            }
+        }
+
+        stage('push latest'){
+           steps{
+                container ('maven') {
+                  sh 'docker tag  $REGISTRY/$ALIYUN_DOCKERHUB_NAMESPACE/$APP_NAME:SNAPSHOT-$BUILD_NUMBER $REGISTRY/$ALIYUN_DOCKERHUB_NAMESPACE/$APP_NAME:cache '
+                  sh 'docker push  $REGISTRY/$ALIYUN_DOCKERHUB_NAMESPACE/$APP_NAME:cache '
+                }
+           }
+        }
+    }
+}
