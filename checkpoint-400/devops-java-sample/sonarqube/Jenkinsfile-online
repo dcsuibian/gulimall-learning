@@ -1,0 +1,131 @@
+pipeline {
+  agent {
+    node {
+      label 'maven'
+    }
+  }
+
+    parameters {
+        string(name:'TAG_NAME',defaultValue: '',description:'')
+    }
+
+    environment {
+        ALIYUN_DOCKER_CREDENTIAL_ID = 'aliyun-dockerhub-id'
+        GITEE_CREDENTIAL_ID = 'gitee-id'
+        KUBECONFIG_CREDENTIAL_ID = 'demo-kubeconfig'
+        REGISTRY = 'registry.cn-hangzhou.aliyuncs.com'
+        ALIYUN_DOCKERHUB_NAMESPACE = 'docker_username'
+        GITEE_ACCOUNT = 'kubesphere'
+        APP_NAME = 'devops-java-sample'
+        SONAR_CREDENTIAL_ID = 'sonar-qube'
+    }
+
+    stages {
+        stage ('checkout scm') {
+            steps {
+                checkout(scm)
+            }
+        }
+
+        stage ('unit test') {
+            steps {
+                container ('maven') {
+                    sh 'mvn clean -o -gs `pwd`/configuration/settings.xml test'
+                }
+            }
+        }
+
+        stage('sonarqube analysis') {
+          steps {
+            container ('maven') {
+              withCredentials([string(credentialsId: "$SONAR_CREDENTIAL_ID", variable: 'SONAR_TOKEN')]) {
+                withSonarQubeEnv('sonar') {
+                 sh "mvn sonar:sonar -o -gs `pwd`/configuration/settings.xml -Dsonar.login=$SONAR_TOKEN"
+                }
+              }
+              timeout(time: 1, unit: 'HOURS') {
+                waitForQualityGate abortPipeline: true
+              }
+            }
+          }
+        }
+
+        stage ('build & push') {
+            steps {
+                container ('maven') {
+                    sh 'mvn -o -Dmaven.test.skip=true -gs `pwd`/configuration/settings.xml clean package'
+                    sh 'docker build --no-cache -f Dockerfile-online -t $REGISTRY/$ALIYUN_DOCKERHUB_NAMESPACE/$APP_NAME:SNAPSHOT-$BRANCH_NAME-$BUILD_NUMBER .'
+                    withCredentials([usernamePassword(passwordVariable : 'ALIYUN_DOCKER_PASSWORD' ,usernameVariable : 'ALIYUN_DOCKER_USERNAME' ,credentialsId : "$ALIYUN_DOCKER_CREDENTIAL_ID" ,)]) {
+                        sh 'echo "$ALIYUN_DOCKER_PASSWORD" | docker login $REGISTRY -u "$ALIYUN_DOCKER_USERNAME" --password-stdin'
+                        sh 'docker push  $REGISTRY/$ALIYUN_DOCKERHUB_NAMESPACE/$APP_NAME:SNAPSHOT-$BRANCH_NAME-$BUILD_NUMBER'
+                    }
+                }
+            }
+        }
+
+        stage('push latest'){
+           when{
+             branch 'sonarqube'
+           }
+           steps{
+                container ('maven') {
+                  sh 'docker tag  $REGISTRY/$ALIYUN_DOCKERHUB_NAMESPACE/$APP_NAME:SNAPSHOT-$BRANCH_NAME-$BUILD_NUMBER $REGISTRY/$ALIYUN_DOCKERHUB_NAMESPACE/$APP_NAME:latest '
+                  sh 'docker push  $REGISTRY/$ALIYUN_DOCKERHUB_NAMESPACE/$APP_NAME:latest '
+                }
+           }
+        }
+
+        stage('deploy to dev') {
+          agent none
+          when{
+            branch 'sonarqube'
+          }
+          steps {
+            container('maven') {
+              input(id: 'deploy-to-dev', message: 'deploy to dev?')
+              withCredentials([kubeconfigFile(credentialsId: env.KUBECONFIG_CREDENTIAL_ID, variable: 'KUBECONFIG')]) {
+                sh 'envsubst < deploy/dev-ol/devops-sample-svc.yaml | kubectl apply -f -'
+                sh 'envsubst < deploy/dev-ol/devops-sample.yaml | kubectl apply -f -'
+              }
+            }
+          }
+        }
+        stage('push with tag'){
+          when{
+            expression{
+              return params.TAG_NAME =~ /v.*/
+            }
+          }
+          steps {
+              container ('maven') {
+                input(id: 'release-image-with-tag', message: 'release image with tag?')
+                  withCredentials([usernamePassword(credentialsId: "$GITEE_CREDENTIAL_ID", passwordVariable: 'GITEE_PASSWORD', usernameVariable: 'GITEE_USERNAME')]) {
+                    sh 'git config --global user.email "kubesphere@yunify.com" '
+                    sh 'git config --global user.name "kubesphere" '
+                    sh 'git tag -a $TAG_NAME -m "$TAG_NAME" '
+                    sh 'git push http://$GITEE_USERNAME:$GITEE_PASSWORD@gitee.com/$GITEE_ACCOUNT/devops-java-sample.git --tags --ipv4'
+                  }
+                sh 'docker tag  $REGISTRY/$ALIYUN_DOCKERHUB_NAMESPACE/$APP_NAME:SNAPSHOT-$BRANCH_NAME-$BUILD_NUMBER $REGISTRY/$ALIYUN_DOCKERHUB_NAMESPACE/$APP_NAME:$TAG_NAME '
+                sh 'docker push  $REGISTRY/$ALIYUN_DOCKERHUB_NAMESPACE/$APP_NAME:$TAG_NAME '
+          }
+          }
+        }
+        stage('deploy to production') {
+          agent none
+          when{
+            expression{
+              return params.TAG_NAME =~ /v.*/
+            }
+          }
+          steps {
+            container('maven') {
+              input(id: 'deploy-to-production', message: 'deploy to production?')
+              withCredentials([kubeconfigFile(credentialsId: env.KUBECONFIG_CREDENTIAL_ID, variable: 'KUBECONFIG')]) {
+                sh 'envsubst < deploy/prod-ol/devops-sample-svc.yaml | kubectl apply -f -'
+                sh 'envsubst < deploy/prod-ol/devops-sample.yaml | kubectl apply -f -'
+              }
+            }
+          }
+        }
+    }
+}

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: tomcat6-new
+  name: tomcat6-new
+  namespace: default
+spec:
+  containers:
+  - image: tomcat:6.0.53-jre8
+    imagePullPolicy: IfNotPresent
+    name: tomcat-new
+  - image: nginx
+    imagePullPolicy: IfNotPresent
+    name: nginx
