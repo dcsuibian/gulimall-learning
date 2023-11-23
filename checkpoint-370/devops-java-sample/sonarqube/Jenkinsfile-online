@@ -84,7 +84,8 @@ pipeline {
             container('maven') {
               input(id: 'deploy-to-dev', message: 'deploy to dev?')
               withCredentials([kubeconfigFile(credentialsId: env.KUBECONFIG_CREDENTIAL_ID, variable: 'KUBECONFIG')]) {
-                sh 'kubectl apply -f deploy/dev-ol/'
+                sh 'envsubst < deploy/dev-ol/devops-sample-svc.yaml | kubectl apply -f -'
+                sh 'envsubst < deploy/dev-ol/devops-sample.yaml | kubectl apply -f -'
               }
             }
           }
@@ -120,7 +121,8 @@ pipeline {
             container('maven') {
               input(id: 'deploy-to-production', message: 'deploy to production?')
               withCredentials([kubeconfigFile(credentialsId: env.KUBECONFIG_CREDENTIAL_ID, variable: 'KUBECONFIG')]) {
-                sh 'kubectl apply -f deploy/prod-ol/'
+                sh 'envsubst < deploy/prod-ol/devops-sample-svc.yaml | kubectl apply -f -'
+                sh 'envsubst < deploy/prod-ol/devops-sample.yaml | kubectl apply -f -'
               }
             }
           }

@@ -390,9 +390,9 @@ KubeSphere第一次登录要改密码，可以和原来的相同，我还是用�
 
 ## DevOps
 
-在`gulimall-devops`里。
-
 ### 创建凭证
+
+在`gulimall-devops`里。
 
 #### 创建Docker Hub凭证
 
@@ -450,6 +450,8 @@ KubeSphere第一次登录要改密码，可以和原来的相同，我还是用�
 
 ### 修改Jenkinsfile
 
+在`gulimall-devops`里。
+
 #### Fork项目
 
 1. Fork [devops-java-sample](https://github.com/kubesphere/devops-java-sample)。Fork时不要选“Copy the `master` branch only”。
@@ -486,7 +488,7 @@ git push -u gitee master dependency podman sonarqube
 
 用Visual Studio Code打开本文档所在文件夹里的`devops-java-sample`，并准备开始进行全局替换操作（注意一定要开启**区分大小写**）：
 
-![image-20231121061756298](./assets/image-20231121061756298.png)
+![image-20231123191949308](./assets/image-20231123191949308.png)
 
 替换`kubesphere@yunify.com`为`你自己的git邮箱`。
 
@@ -504,31 +506,33 @@ git push -u gitee master dependency podman sonarqube
 
 ![image-20231121065004830](./assets/image-20231121065004830.png)
 
-然后用对应子文件夹的`Jenkinsfile-online`替换对应分支的`Jenkinsfile-online`并推送：
+然后用对应子文件夹的文件覆盖对应分支的文件并推送：
+
+![image-20231123191825185](./assets/image-20231123191825185.png)
 
 ```shell
 git switch dependency
-code Jenkinsfile-online --wait # 替换Jenkinsfile-online文件的内容
-git ci -am "update Jenkinsfile-online."
+# 覆盖对应的文件
+git ci -am "update Jenkinsfile-online and deploy."
 git push gitee dependency # 推送到Gitee
 
 git switch master
-code Jenkinsfile-online --wait # 替换Jenkinsfile-online文件的内容
-git ci -am "update Jenkinsfile-online."
+# 覆盖对应的文件
+git ci -am "update Jenkinsfile-online and deploy."
 git push gitee master # 推送到Gitee
 
 git switch podman
-code Jenkinsfile-online --wait # 替换Jenkinsfile-online文件的内容
-git ci -am "update Jenkinsfile-online."
+# 覆盖对应的文件
+git ci -am "update Jenkinsfile-online and deploy."
 git push gitee podman # 推送到Gitee
 
 git switch sonarqube
-code Jenkinsfile-online --wait # 替换Jenkinsfile-online文件的内容
-git ci -am "update Jenkinsfile-online."
+# 覆盖对应的文件
+git ci -am "update Jenkinsfile-online and deploy."
 git push gitee sonarqube # 推送到Gitee
 ```
 
-**!!!一定要用我提供的4个Jenkinsfile-online!!!**
+**!!!一定要用我提供的文件!!!**
 
 原因：[kubernetesDeploy已经被弃用](https://ask.kubesphere.io/forum/d/8641-kubernetesdeploy)。
 
@@ -555,6 +559,14 @@ git push gitee sonarqube # 推送到Gitee
 | kubesphere-sample-prod | project-regular | operator |
 
 登出，重新用`project-regular`登录。
+
+#### 创建保密字典
+
+这一步要求你进入到项目`kubesphere-sample-prod`和`kubesphere-sample-dev`，在两个项目里都创建一个名为`aliyun-dockerhub-secret`的保密字典：
+
+![image-20231123184837364](./assets/image-20231123184837364.png)
+
+![image-20231123184957684](./assets/image-20231123184957684.png)
 
 #### 创建流水线
 
