@@ -498,9 +498,9 @@ git push -u gitee master dependency podman sonarqube
 
 ![image-20231121062237577](./assets/image-20231121062237577.png)
 
-替换`kubesphere`为`你自己的Gitee用户名`。
+替换`kubesphere`为`你自己的Gitee用户名`。（注意，这里只替换`Jenkinsfile-online`文件内的，不要连yaml文件的也一起替换了）
 
-![image-20231121062322789](./assets/image-20231121062322789.png)
+![image-20231125013847864](./assets/image-20231125013847864.png)
 
 替换`docker_username`为`你自己的阿里云仓库命名空间`：
 
