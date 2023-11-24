@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: tomcat6
+  name: tomcat6
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: tomcat6
+  template:
+    metadata:
+      labels:
+        app: tomcat6
+    spec:
+      containers:
+      - image: tomcat:6.0.53-jre8
+        name: tomcat
